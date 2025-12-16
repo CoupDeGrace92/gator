@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"encoding/json"
+	"github.com/CoupDeGrace92/gator/internal/database"
 )
 
 type Config struct {
@@ -13,6 +14,7 @@ type Config struct {
 
 type State struct {
 	CfgPoint     *Config
+	Db			 *database.Queries
 }
 
 type Command struct {
