@@ -1,2 +1,2 @@
 -- name: DeleteUsers :exec
-DROP TABLE users;
+TRUNCATE TABLE users;

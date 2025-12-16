@@ -30,6 +30,7 @@ func main() {
 	commands := cmnd.Commands{FuncHandlers: make(map[string]func(*config.State, cmnd.Command)error)}
 	commands.Register("login", cmnd.HandlerLogin)
 	commands.Register("register", cmnd.HandlerRegister)
+	commands.Register("reset", cmnd.HandlerReset)
 	cliCommands := os.Args
 	if len(cliCommands)<2{
 		fmt.Printf("Error: expecting at least one command line argument in addition to program name\n")

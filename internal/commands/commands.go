@@ -93,3 +93,13 @@ func HandlerRegister(s *config.State, cmd Command) error {
 	fmt.Printf("User was created:\n	ID: %v\n	CreatedAt: %v\n 	UpdatedAt: %v\n 	Name: %v\n",addedUser.ID, addedUser.CreatedAt, addedUser.UpdatedAt, addedUser.Name)
 	return nil
 }
+
+func HandlerReset(s *config.State,cmd Command) error {
+	err := s.Db.DeleteUsers(context.Background())
+	if err != nil{
+		err = fmt.Errorf("Error in dropping the users table: %v\n", err)
+		return err
+	}
+	fmt.Println("Users table reset")
+	return nil
+}
