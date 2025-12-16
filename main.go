@@ -1,5 +1,7 @@
 package main
 
+import _ "github.com/lib/pq"
+
 import (
 	"github.com/CoupDeGrace92/gator/internal/config"
 	"github.com/CoupDeGrace92/gator/internal/commands"
