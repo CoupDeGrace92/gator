@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/CoupDeGrace92/gator/internal/config"
+	"github.com/CoupDeGrace92/gator/internal/commands"
 	"os"
 	"log"
 )
@@ -9,8 +10,8 @@ import (
 func main() {
 	conf := config.Read()
 	state := &config.State{CfgPoint: &conf}
-	commands := config.Commands{FuncHandlers: make(map[string]func(*config.State, config.Command)error)}
-	commands.Register("login", config.HandlerLogin)
+	commands := cmnd.Commands{FuncHandlers: make(map[string]func(*config.State, cmnd.Command)error)}
+	commands.Register("login", cmnd.HandlerLogin)
 	cliCommands := os.Args
 	if len(cliCommands)<2{
 		log.Fatal("Error: expecting at least one command line argument in addition to program name\n")
@@ -22,7 +23,7 @@ func main() {
 	} else {
 		args = []string{}
 	}
-	command := config.Command{
+	command := cmnd.Command{
 		Name: commandName,
 		Args: args,
 	}
