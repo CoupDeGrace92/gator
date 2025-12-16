@@ -1,0 +1,11 @@
+Move non-structures to a command package that contains our functions
+
+Also can contain State, Command, Commands and the related methods
+    the Read function and SetUser method should stay in configs
+
+name the package cmd or something
+
+ADDITIONAL TASK - WE WANT TO DO AN IO.WRITER INJECTION TO CREATE A TEST OUTPUT FOR CONSOLE OUTPUT
+logging package
+
+Once we have the logs, we can build an automated test package - these tasks we may or may not want to do.

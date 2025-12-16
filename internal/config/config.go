@@ -11,8 +11,40 @@ type Config struct {
 	CurrentUser  string `json: "current_user_name"`
 }
 
-func (C Config) SetUser(name string) {
-	C.CurrentUser = name
+type State struct {
+	CfgPoint     *Config
+}
+
+type Command struct {
+	Name	string
+	Args	[]string
+}
+
+type Commands struct {
+	FuncHandlers  map[string]func(*State, Command)error
+}
+
+func (C *Commands) Run(S *State, Cmd Command)error {
+	f, ok := C.FuncHandlers[Cmd.Name]
+	if !ok {
+		err := fmt.Errorf("Command %s not found", Cmd.Name)
+		return err
+	}
+	err := f(S, Cmd)
+	if err != nil {
+		err = fmt.Errorf("Error running %s: %v",Cmd.Name, err)
+		return err
+	}
+	return nil
+}
+
+func (C *Commands) Register(name string, f func(*State, Command)error) {
+	C.FuncHandlers[name] = f
+	return
+}
+
+func (C Config) SetUser(Name string) {
+	C.CurrentUser = Name
 	data, err := json.Marshal(C)
 	if err != nil{
 		fmt.Printf("Current user name changed, ERROR marshalling the resulting config: %v", err)
@@ -51,3 +83,16 @@ func Read() Config {
 	return storageObject
 }
 
+func HandlerLogin(s *State,cmd Command) error {
+	if len(cmd.Args) != 1 {
+		err := fmt.Errorf("Error: login expects 1 argument, %v arguments found", len(cmd.Args))
+		return err
+	}
+	s.CfgPoint.SetUser(cmd.Args[0])
+	if checkConfig := Read(); checkConfig.CurrentUser != cmd.Args[0] {
+		err:= fmt.Errorf("Error: expected updated username to be %s, was %s",cmd.Args[0],checkConfig.CurrentUser)
+		return err
+	}
+	fmt.Println("Username has been set.")
+	return nil
+}
