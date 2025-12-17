@@ -103,3 +103,23 @@ func HandlerReset(s *config.State,cmd Command) error {
 	fmt.Println("Users table reset")
 	return nil
 }
+
+func HandlerGetUsers(s *config.State, cmd Command) error {
+	users, err := s.Db.GetUsers(context.Background())
+	if err != nil {
+		err = fmt.Errorf("Error getting users: %v", err)
+		return err
+	}
+	for _, user := range users {
+		if user == s.CfgPoint.CurrentUser {
+			fmt.Printf("* %s (current)\n", user)
+			continue
+		}
+		fmt.Printf("* %s\n", user)
+	}
+	return nil
+}
+
+func HandlerAggreagte(s *config.State, cmd Command) error {
+	return nil
+}
