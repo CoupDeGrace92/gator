@@ -4,6 +4,7 @@ import(
 	"fmt"
 	"github.com/CoupDeGrace92/gator/internal/config"
 	"github.com/CoupDeGrace92/gator/internal/database"
+	"github.com/CoupDeGrace92/gator/internal/web"
 	"time"
 	"github.com/google/uuid"
 	"context"
@@ -120,6 +121,48 @@ func HandlerGetUsers(s *config.State, cmd Command) error {
 	return nil
 }
 
-func HandlerAggreagte(s *config.State, cmd Command) error {
+func HandlerAggregate(s *config.State, cmd Command) error {
+	if len(cmd.Args)!=0 {
+		err := fmt.Errorf("agg expects no arguments, found %v\n", len(cmd.Args))
+		return err
+	}
+	feed, err:= web.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	if err != nil{
+		err = fmt.Errorf("Error fetching feed: %v \n", err)
+		return err
+	}
+	fmt.Println(*feed)
+	return nil
+}
+
+func HandlerAddFeed(s *config.State, cmd Command) error {
+	if len(cmd.Args) != 2{
+		err := fmt.Errorf("Error: Add feed expects 2 args, recieved %v\n", len(cmd.Args))
+		return err
+	}
+	name := cmd.Args[0]
+	url := cmd.Args[1]
+	user, err := s.Db.GetUser(context.Background(), s.CfgPoint.CurrentUser)
+	if err != nil{
+		err = fmt.Errorf("Error getting current user: %v\n", err)
+		return err
+	}
+	user_id := user.ID
+	
+	//Now we need to create the argParams:
+	var argParams database.CreateFeedParams
+	argParams.ID = uuid.New()
+	now := time.Now()
+	argParams.CreatedAt = now
+	argParams.UpdatedAt = now
+	argParams.Name = name
+	argParams.Url = url
+	argParams.UserID = user_id
+
+	addedFeed, err := s.Db.CreateFeed(context.Background(), argParams)
+	if err != nil{
+		err = fmt.Errorf("Error creating feed: %v\n", err)
+	}
+	fmt.Printf("Created feed succesfully:\n	ID: %v\n	CreatedAt: %v\n	UpdatedAt: %v\n	Name: %s\n	Url: %s\n	UserId: %v\n",	addedFeed.ID, addedFeed.CreatedAt, addedFeed.UpdatedAt, addedFeed.Name, addedFeed.Url, addedFeed.UserID)
 	return nil
 }
