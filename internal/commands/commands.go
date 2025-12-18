@@ -162,7 +162,95 @@ func HandlerAddFeed(s *config.State, cmd Command) error {
 	addedFeed, err := s.Db.CreateFeed(context.Background(), argParams)
 	if err != nil{
 		err = fmt.Errorf("Error creating feed: %v\n", err)
+		return err
 	}
 	fmt.Printf("Created feed succesfully:\n	ID: %v\n	CreatedAt: %v\n	UpdatedAt: %v\n	Name: %s\n	Url: %s\n	UserId: %v\n",	addedFeed.ID, addedFeed.CreatedAt, addedFeed.UpdatedAt, addedFeed.Name, addedFeed.Url, addedFeed.UserID)
+	cmd.Args[0] = cmd.Args[1]
+	cmd.Args = cmd.Args[:1]
+	err = HandlerFollow(s, cmd)
+	if err != nil{
+		err = fmt.Errorf("Error following created feed: %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func HandlerFeeds(s *config.State, cmd Command) error {
+	if len(cmd.Args) != 0{
+		err := fmt.Errorf("Error: feeds expects no arguments, recieved %v", len(cmd.Args))
+		return err
+	}
+	feeds, err := s.Db.GetFeeds(context.Background())
+	if err != nil {
+		err = fmt.Errorf("Error getting feeds from db: %v", err)
+		return err
+	}
+
+	if len(feeds) == 0 {
+		err = fmt.Errorf("No feeds in database")
+		return err
+	}
+
+	for _, feed := range feeds {
+		fmt.Printf("Feed: %s URL: %s User: %s\n", feed.FeedName, feed.FeedUrl, feed.User)
+	}
+
+	return nil
+}
+
+func HandlerFollow(s *config.State, cmd Command) error {
+	if len(cmd.Args) != 1{
+		err := fmt.Errorf("Error: follow expects one argument, recieved %v", len(cmd.Args))
+		return err
+	}
+	url := cmd.Args[0]
+	feedID, err:= s.Db.GetFeedIds(context.Background(), url)
+	if err != nil {
+		err := fmt.Errorf("Error with getting feed name from the db: %v", err)
+		return err
+	}
+	userStruct, err := s.Db.GetUser(context.Background(), s.CfgPoint.CurrentUser)
+	if err != nil{
+		err := fmt.Errorf("Error with getting user info for current user: %v", err)
+		return err
+	}
+
+	var argParams database.CreateFeedFollowsParams
+	argParams.ID = uuid.New()
+	now := time.Now()
+	argParams.CreatedAt = now
+	argParams.UpdatedAt = now
+	argParams.UserID = userStruct.ID//this is a uuid.UUID object, not a string but is handled similarly to strings
+	argParams.FeedID = feedID //this is a uuid.UUID object...
+
+	feedFollows, err := s.Db.CreateFeedFollows(context.Background(), argParams)
+	if err != nil {
+		err = fmt.Errorf("Error with creating feed follows in the db: %v", err)
+		return err
+	}
+
+	fmt.Printf("Feed Name: %s\n Current User: %s\n", feedFollows.FeedName, feedFollows.User)
+
+	return nil
+}
+
+func HandlerFollowing(s *config.State, cmd Command) error {
+	if len(cmd.Args)!=0{
+		err := fmt.Errorf("Error: following expects no args, recieved %v", len(cmd.Args))
+		return err
+	}
+	feedFollowSlice, err := s.Db.GetFeedFollowsForUser(context.Background(), s.CfgPoint.CurrentUser)
+	if err != nil{
+		err = fmt.Errorf("Error with getting feed follows from db layar: %v\n", err)
+		return err
+	}
+	if len(feedFollowSlice)==0{
+		fmt.Println("No feeds followed")
+		return nil
+	}
+	fmt.Println("Following feeds:")
+	for _, feed := range feedFollowSlice {
+		fmt.Printf("	%s\n", feed.FeedName)
+	}
 	return nil
 }
