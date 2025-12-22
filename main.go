@@ -33,10 +33,11 @@ func main() {
 	commands.Register("reset", cmnd.HandlerReset)
 	commands.Register("users", cmnd.HandlerGetUsers)
 	commands.Register("agg", cmnd.HandlerAggregate)
-	commands.Register("addfeed", cmnd.HandlerAddFeed)
+	commands.Register("addfeed", cmnd.MiddlewareLoggedIn(cmnd.HandlerAddFeed))
 	commands.Register("feeds", cmnd.HandlerFeeds)
-	commands.Register("follow", cmnd.HandlerFollow)
+	commands.Register("follow", cmnd.MiddlewareLoggedIn(cmnd.HandlerFollow))
 	commands.Register("following", cmnd.HandlerFollowing)
+	commands.Register("unfollow", cmnd.MiddlewareLoggedIn(cmnd.HandlerUnfollow))
 	cliCommands := os.Args
 	if len(cliCommands)<2{
 		fmt.Printf("Error: expecting at least one command line argument in addition to program name\n")

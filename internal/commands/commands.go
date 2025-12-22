@@ -4,7 +4,6 @@ import(
 	"fmt"
 	"github.com/CoupDeGrace92/gator/internal/config"
 	"github.com/CoupDeGrace92/gator/internal/database"
-	"github.com/CoupDeGrace92/gator/internal/web"
 	"time"
 	"github.com/google/uuid"
 	"context"
@@ -122,31 +121,32 @@ func HandlerGetUsers(s *config.State, cmd Command) error {
 }
 
 func HandlerAggregate(s *config.State, cmd Command) error {
-	if len(cmd.Args)!=0 {
-		err := fmt.Errorf("agg expects no arguments, found %v\n", len(cmd.Args))
+	if len(cmd.Args)!=1 {
+		err := fmt.Errorf("agg expects one arguments, found %v\n", len(cmd.Args))
 		return err
 	}
-	feed, err:= web.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
-	if err != nil{
-		err = fmt.Errorf("Error fetching feed: %v \n", err)
-		return err
+	//The argument passed should be in a form time.ParseDuration recognizes
+	timeBetweenRequests, err := time.ParseDuration(cmd.Args[0])
+	if err != nil {
+		err = fmt.Errorf("Error parsing time: %v", err)
 	}
-	fmt.Println(*feed)
+	ticker := time.NewTicker(timeBetweenRequests)
+	for ; ; <-ticker.C {
+		err := ScrapeFeeds(s, context.Background())
+		if err != nil{
+			return err
+		}
+	}
 	return nil
 }
 
-func HandlerAddFeed(s *config.State, cmd Command) error {
+func HandlerAddFeed(s *config.State, cmd Command, user database.User) error {
 	if len(cmd.Args) != 2{
 		err := fmt.Errorf("Error: Add feed expects 2 args, recieved %v\n", len(cmd.Args))
 		return err
 	}
 	name := cmd.Args[0]
 	url := cmd.Args[1]
-	user, err := s.Db.GetUser(context.Background(), s.CfgPoint.CurrentUser)
-	if err != nil{
-		err = fmt.Errorf("Error getting current user: %v\n", err)
-		return err
-	}
 	user_id := user.ID
 	
 	//Now we need to create the argParams:
@@ -167,7 +167,7 @@ func HandlerAddFeed(s *config.State, cmd Command) error {
 	fmt.Printf("Created feed succesfully:\n	ID: %v\n	CreatedAt: %v\n	UpdatedAt: %v\n	Name: %s\n	Url: %s\n	UserId: %v\n",	addedFeed.ID, addedFeed.CreatedAt, addedFeed.UpdatedAt, addedFeed.Name, addedFeed.Url, addedFeed.UserID)
 	cmd.Args[0] = cmd.Args[1]
 	cmd.Args = cmd.Args[:1]
-	err = HandlerFollow(s, cmd)
+	err = HandlerFollow(s, cmd, user)
 	if err != nil{
 		err = fmt.Errorf("Error following created feed: %v\n", err)
 		return err
@@ -198,7 +198,7 @@ func HandlerFeeds(s *config.State, cmd Command) error {
 	return nil
 }
 
-func HandlerFollow(s *config.State, cmd Command) error {
+func HandlerFollow(s *config.State, cmd Command, user database.User) error {
 	if len(cmd.Args) != 1{
 		err := fmt.Errorf("Error: follow expects one argument, recieved %v", len(cmd.Args))
 		return err
@@ -209,18 +209,13 @@ func HandlerFollow(s *config.State, cmd Command) error {
 		err := fmt.Errorf("Error with getting feed name from the db: %v", err)
 		return err
 	}
-	userStruct, err := s.Db.GetUser(context.Background(), s.CfgPoint.CurrentUser)
-	if err != nil{
-		err := fmt.Errorf("Error with getting user info for current user: %v", err)
-		return err
-	}
 
 	var argParams database.CreateFeedFollowsParams
 	argParams.ID = uuid.New()
 	now := time.Now()
 	argParams.CreatedAt = now
 	argParams.UpdatedAt = now
-	argParams.UserID = userStruct.ID//this is a uuid.UUID object, not a string but is handled similarly to strings
+	argParams.UserID = user.ID//this is a uuid.UUID object, not a string but is handled similarly to strings
 	argParams.FeedID = feedID //this is a uuid.UUID object...
 
 	feedFollows, err := s.Db.CreateFeedFollows(context.Background(), argParams)
@@ -252,5 +247,34 @@ func HandlerFollowing(s *config.State, cmd Command) error {
 	for _, feed := range feedFollowSlice {
 		fmt.Printf("	%s\n", feed.FeedName)
 	}
+	return nil
+}
+
+func HandlerUnfollow(s *config.State, cmd Command, user database.User) error {
+	if len(cmd.Args)!=1{
+		err:= fmt.Errorf("Error: Unfollow expects 1 args, recieved %v\n", len(cmd.Args))
+		return err
+	}
+	// We have GetFeedIds(ctx, url) uuid  AND GetUser(ctx, name) User  where User.ID is the uuid for user id
+	//name is in s.CfgPoint.CurrentUser
+	userId, err := s.Db.GetUser(context.Background(), s.CfgPoint.CurrentUser)
+	if err != nil{
+		err = fmt.Errorf("Error getting user: %v", err)
+		return err
+	}
+	feedId, err := s.Db.GetFeedIds(context.Background(), cmd.Args[0])
+	if err != nil{
+		err = fmt.Errorf("Error getting feedId: %v\n", err)
+		return err 
+	}
+	var unfollowPs database.UnfollowParams
+	unfollowPs.UserID = userId.ID
+	unfollowPs.FeedID = feedId
+	err = s.Db.Unfollow(context.Background(), unfollowPs)
+	if err != nil {
+		err = fmt.Errorf("Error in unfollowing %v: %v\n", cmd.Args[0], err)
+		return err
+	}
+	fmt.Printf("Succesfully unfollowed feed from %v\n", cmd.Args[0])
 	return nil
 }
