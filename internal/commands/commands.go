@@ -306,7 +306,7 @@ func HandlerBrowse(s *config.State, cmd Command, user database.User) error{
 	}
 
 	for i, post := range posts {
-		fmt.Printf("%v. %v: %v\n	%v", i, post.FeedName, post.Title, post.Url)
+		fmt.Printf("%v. %v: %v\n	%v\n", i+1, post.FeedName, post.Title, post.Url)
 	}
 	return nil
 }

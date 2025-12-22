@@ -13,13 +13,22 @@ import(
 )
 
 func variableTimeParser(date string) (time.Time, error){
-	layouts := []string{"Mon, 02 Jan 2006 15:04:05 -0700","Mon, 02 Jan 2006 15:04:05 MST","2006-01-02T15:04:05Z07:00","02 Jan 06 15:04 MST","02 Jan 06 15:04 -0700"}
+	layouts := []string{        
+		time.RFC1123Z,
+        time.RFC1123,
+        time.RFC3339,
+		"Mon, 02 Jan 2006 15:04:05 -0700",
+		"Mon, 02 Jan 2006 15:04:05 MST",
+		"2006-01-02T15:04:05Z07:00",
+		"02 Jan 06 15:04 MST",
+		"02 Jan 06 15:04 -0700"}
 	for _, layout := range layouts {
 		t, err := time.Parse(layout, date)
 		if err == nil {
 			return t, nil
 		}
 	}
+	fmt.Printf("Failed to parse %s", date)
 	return time.Time{}, fmt.Errorf("Could not parse %v with the available formats", date)
 }
 
@@ -64,8 +73,8 @@ func ScrapeFeeds(s *config.State, ctx context.Context) error {
 		if item.PubDate == ""{
 			argParams.PublishedAt = sql.NullTime{Valid: false}
 		} else {
-			t, err := variableTimeParser(item.PubDate)
-			if err != nil {
+			t, er := variableTimeParser(item.PubDate)
+			if er != nil {
 				fmt.Printf("failed to parse %v from %v on article %v", item.PubDate, RssFeed.Channel.Title, item.Title)
 				argParams.PublishedAt = sql.NullTime{Valid: false}
 			} else {
