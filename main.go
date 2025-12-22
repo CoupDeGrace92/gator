@@ -38,6 +38,7 @@ func main() {
 	commands.Register("follow", cmnd.MiddlewareLoggedIn(cmnd.HandlerFollow))
 	commands.Register("following", cmnd.HandlerFollowing)
 	commands.Register("unfollow", cmnd.MiddlewareLoggedIn(cmnd.HandlerUnfollow))
+	commands.Register("browse", cmnd.MiddlewareLoggedIn(cmnd.HandlerBrowse))
 	cliCommands := os.Args
 	if len(cliCommands)<2{
 		fmt.Printf("Error: expecting at least one command line argument in addition to program name\n")

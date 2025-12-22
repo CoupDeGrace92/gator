@@ -2,6 +2,7 @@ package cmnd
 
 import(
 	"fmt"
+	"strconv"
 	"github.com/CoupDeGrace92/gator/internal/config"
 	"github.com/CoupDeGrace92/gator/internal/database"
 	"time"
@@ -276,5 +277,36 @@ func HandlerUnfollow(s *config.State, cmd Command, user database.User) error {
 		return err
 	}
 	fmt.Printf("Succesfully unfollowed feed from %v\n", cmd.Args[0])
+	return nil
+}
+
+func HandlerBrowse(s *config.State, cmd Command, user database.User) error{
+	var limit int
+	if len(cmd.Args)>1{
+		err:= fmt.Errorf("Too many arguments specified, expecting 0 or 1 instead found %v", len(cmd.Args))
+		return err
+	} else if len(cmd.Args) == 1 {
+		var err error
+		limit, err = strconv.Atoi(cmd.Args[0])
+		if err != nil{
+			err:=fmt.Errorf("Error converting arguments to integers: %v", err)
+			return err
+		}
+	} else {
+		limit = 2
+	}
+
+	var postArgs database.GetPostsFromUserParams
+	postArgs.UserID = user.ID
+	postArgs.Limit = int32(limit)
+
+	posts, err := s.Db.GetPostsFromUser(context.Background(), postArgs)
+	if err!=nil{
+		return err
+	}
+
+	for i, post := range posts {
+		fmt.Printf("%v. %v: %v\n	%v", i, post.FeedName, post.Title, post.Url)
+	}
 	return nil
 }
